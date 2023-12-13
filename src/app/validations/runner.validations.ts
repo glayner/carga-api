@@ -1,6 +1,40 @@
 import { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 const methodArray = [
+  "get",
+  "post",
+  "patch",
+  "put",
+  "delete",
+  "acl",
+  "bind",
+  "checkout",
+  "connect",
+  "copy",
+  "head",
+  "link",
+  "lock",
+  "m-search",
+  "merge",
+  "mkactivity",
+  "mkcalendar",
+  "mkcol",
+  "move",
+  "notify",
+  "options",
+  "propfind",
+  "proppatch",
+  "purge",
+  "report",
+  "search",
+  "source",
+  "subscribe",
+  "rebind",
+  "trace",
+  "unbind",
+  "unlink",
+  "unlock",
+  "unsubscribe",
   "GET",
   "POST",
   "PATCH",
@@ -39,12 +73,18 @@ const methodArray = [
 
 const requestSchemaData = {
   url: z.string(),
-  method: z.enum(methodArray).default("GET"),
+  method: z
+    .enum(methodArray, {
+      invalid_type_error: "Você deve informar um método válido",
+      required_error: "Você deve informar um método",
+    })
+    .transform((val) => val.toLocaleUpperCase())
+    .default("GET"),
   headers: z
-    .record(z.string(), z.string())
+    .record(z.string())
     .optional()
     .default({ "content-type": "application/json" }),
-  body: z.record(z.string(), z.string()).optional(),
+  body: z.record(z.string()).optional(),
 };
 
 const PreAndPosRequestSchema = z.object({

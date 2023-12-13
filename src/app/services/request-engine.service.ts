@@ -12,8 +12,6 @@ interface ExecuteRequestEngine {
   initialEnv?: EnvType;
 }
 
-
-
 export async function requestEngineService({
   requests,
   logKey,
@@ -23,21 +21,26 @@ export async function requestEngineService({
   const environment: EnvType = {
     ...initialEnv,
   };
+  console.log({ environment }, "requestEngineService");
 
-  const listOfResult: any[] = []
-  const listOfError: any[] = []
+  const listOfResult: any[] = [];
+  const listOfError: any[] = [];
 
- async function createLog(){
+  async function createLog() {
     await RespositoryJson.createOrUpdateRequest({
       key: logKey,
       type,
       data: {
+        date: new Date(),
         variaveis: environment,
         resultados: listOfResult,
       },
-      error: {
-        erros: listOfError
-      }
+      error: listOfError[0]
+        ? {
+            date: new Date(),
+            erros: listOfError,
+          }
+        : undefined,
     });
   }
 
@@ -56,6 +59,12 @@ export async function requestEngineService({
       body: parsedJsonBody,
     })
       .then(async (res) => {
+        const resultData = await res.json().catch(
+          async () =>
+            await res.text().catch(() => {
+              message: "não foi possível recuperar o corpo da resposta";
+            })
+        );
         const dataToLog = {
           status: res.status,
           headers: headers,
@@ -63,8 +72,9 @@ export async function requestEngineService({
           statusText: res.statusText,
           url,
           method,
-          date: new Date().toLocaleString('pt-BR')
-        }
+          data: resultData,
+          date: new Date(),
+        };
 
         if (!res.ok) {
           const message = `Error in ${
@@ -72,25 +82,30 @@ export async function requestEngineService({
           }º in ${type} request for url: ${url} status ${res.status} - ${
             res.statusText
           }!`;
+          const codeError = `${type === "pre" ? 1 : 3}${String(index).padStart(
+            2,
+            "0"
+          )}`;
+
           listOfError.push({
             ...dataToLog,
-            message
-          })
-          throw new AppError( `${type === 'pre' ? 1 : 3}${String(index).padStart(2,'0')}`, message, dataToLog );
-        };
+            message,
+            codeError,
+          });
 
-        const resultData= res.json().catch(() => res.text().catch(() => {message:'não foi possível recuperar o corpo da resposta'}))
+          throw new AppError(codeError, message, dataToLog);
+        }
 
         listOfResult.push({
           ...dataToLog,
-          data: resultData,
-        })
+        });
 
         return resultData;
-      }).catch(async e=>{
-        await createLog()
-        throw e
       })
+      .catch(async (e) => {
+        await createLog();
+        throw e;
+      });
 
     if (request.environment) {
       for (const env of request.environment) {
@@ -99,6 +114,6 @@ export async function requestEngineService({
     }
   }
 
-  await createLog()
+  await createLog();
   return environment;
 }

@@ -18,13 +18,6 @@ interface RunDTO {
 }
 
 class RunnerController {
-  private createLogKey(namespace: string, versao: string, cenario?: string) {
-    return `${namespace.trim()}-${versao}-${cenario
-      ?.split(" ")
-      .join("-")
-      .trim()}`;
-  }
-
   async runLoadTest(request: Request, response: Response): Promise<Response> {
     const {
       "pos-request": posRequest,
@@ -35,7 +28,10 @@ class RunnerController {
       cenario,
     } = request.body as RunnerLoadTestBody;
 
-    const logKey = this.createLogKey(namespace, versao, cenario);
+    const logKey = `${namespace.trim()}-${versao}-${cenario
+      ?.split(" ")
+      .join("-")
+      .trim()}`;
 
     let environment: EnvType = {};
 
@@ -58,6 +54,7 @@ class RunnerController {
             requests: posRequest as RequestEngine[],
             logKey: logKey,
             type: "pos",
+            initialEnv: environment,
           }).catch((e) => {
             console.error(
               "\n-------------requestEngineService-----------\n",
@@ -78,10 +75,18 @@ class RunnerController {
 
   async searchResult(request: Request, response: Response): Promise<Response> {
     const { namespace, versao, cenario } = request.params;
-    
-    const logKey = this.createLogKey(namespace, versao, cenario);
+    const { antes, depois } = request.query;
 
-    const result = await getResultService({ key: logKey });
+    const logKey = `${namespace.trim()}-${versao}-${cenario
+      ?.split(" ")
+      .join("-")
+      .trim()}`;
+
+    const result = await getResultService({
+      key: logKey,
+      after: depois ? new Date(depois as string) : undefined,
+      before: antes ? new Date(antes as string) : undefined,
+    });
     return response.json(result);
   }
 }
