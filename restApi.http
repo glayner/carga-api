@@ -1,0 +1,92 @@
+POST http://localhost:3000/teste-carga/executar
+content-type: application/json
+
+{
+    "pre-request": [
+        {
+            "request": {
+                "url": "http://localhost:3000/test/parametro1",
+                "method": "GET",
+                "headers": {
+                    "content-type": "application/json"
+                }
+            },
+            "environment": [
+                {
+                    "nome": "number1",
+                    "campo": "$.numero1"
+                }
+            ]
+        },
+        {
+            "request": {
+                "url": "http://localhost:3000/test/parametro2",
+                "method": "GET",
+                "headers": {
+                    "content-type": "application/json"
+                }
+            },
+            "environment": [
+                {
+                    "nome": "number2",
+                    "campo": "$.numero2"
+                }
+            ]
+        }
+    ],
+    "request-carga": {
+        "url": "http://localhost:3000/test/soma",
+        "connections": 1,
+        "pipelining": 1,
+        "amount": 5,
+        "method": "POST",
+        "title": "quarto teste pelo body",
+        "body": {
+            "numero1": "<<number1>>",
+            "numero2": "<<number2>>"
+        },
+        "headers": {
+            "content-type": "application/json"
+        }
+    },
+    "pos-request": [{
+        "request": {
+                "url": "http://localhost:3000/test/parametro1",
+                "method": "POST",
+                "headers": {
+                    "content-type": "application/json"
+                }
+            }
+    }],
+    "namespace": "ath-qualidade-massa-de-dados",
+    "versao": "1.0.0-alpha2",
+    "cenario": "teste local"
+}
+
+###
+
+
+GET  http://localhost:3000/test/parametro1 
+content-type: application/json
+###
+
+GET  http://localhost:3000/test/parametro2 
+content-type: application/json
+###
+
+POST  http://localhost:3000/test/soma 
+content-type: application/json
+
+{
+    "numero1": 50,
+    "numero2": 30
+}
+
+###
+@namespace="ath-qualidade-massa-de-dados"
+@versao="1.0.0-alpha2"
+@cenario="teste local"
+GET  http://localhost:3000/teste-carga/buscar/namespace/{{namespace}}/versao/{{versao}}/cenario/{{cenario}}
+content-type: application/json
+
+###
