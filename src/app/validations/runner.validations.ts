@@ -126,16 +126,25 @@ const LoadRequestSchema = z.object({
   skipAggregateResult: z.boolean().optional(),
 });
 
+const KeyData = {
+  namespace: z.string(),
+  versao: z.string(),
+  cenario: z.string().optional(),
+};
+
 const RunnerAutocannonSchema = z
   .object({
     "pre-request": z.array(PreAndPosRequestSchema.optional()),
     "request-carga": LoadRequestSchema.strict(),
     "pos-request": z.array(PreAndPosRequestSchema.optional()),
-    namespace: z.string(),
-    versao: z.string(),
-    cenario: z.string().optional(),
+    ...KeyData,
   })
   .strict();
+
+const GetResultQuerySchema = z.object({
+  antes:  z.string().datetime().optional(),
+  depois:  z.string().datetime().optional()
+})
 
 export type RunnerLoadTestBody = z.infer<typeof RunnerAutocannonSchema>;
 export type LoadTestExecute = z.infer<typeof LoadRequestSchema>;
@@ -149,6 +158,30 @@ export const validateRunnerLoadTest = (
   const data = RunnerAutocannonSchema.parse(request.body);
 
   request.body = data;
+
+  next();
+};
+
+export const validateGetResultRunnerLoadTest = (
+  request: Request,
+  response: Response,
+  next: NextFunction
+) => {
+  const namespace = KeyData.namespace.parse(request.params.namespace);
+  const versao = KeyData.versao.parse(request.params.versao);
+  const cenario = KeyData.cenario.parse(request.params.cenario);
+  const param: { namespace: string; versao: string; cenario?: string } = {
+    namespace,
+    versao,
+  };
+
+  if (cenario) param.cenario = cenario;
+
+  request.params = param;
+
+  const query = GetResultQuerySchema.parse(request.query)
+
+  request.query = query
 
   next();
 };
