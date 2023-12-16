@@ -1,48 +1,74 @@
 import jsonpath from "jsonpath";
 import RespositoryJson from "../../common/database/repository.js";
-import { replaceMarkers } from "../../common/utils/variable-replacement.js";
-import { EnvType } from "../controller/runner.controller.js";
-import { RequestEngine } from "../validations/runner.validations.js";
 import AppError from "../../common/errors/app-error.js";
+import { getCookie } from "../../common/utils/cookies.js";
+import { replaceMarkers } from "../../common/utils/variable-replacement.js";
+import { EnvType, MyCookie } from "../controller/runner.controller.js";
+import { RequestEngine } from "../validations/runner.validations.js";
 
 interface ExecuteRequestEngine {
   requests: RequestEngine[];
-  logKey: string;
+  sysKey: string;
+  reqKey: string;
   type: "pre" | "pos";
   initialEnv?: EnvType;
+  initialCookie: MyCookie;
 }
 
 export async function requestEngineService({
   requests,
-  logKey,
+  sysKey,
+  reqKey,
   type,
   initialEnv,
+  initialCookie,
 }: ExecuteRequestEngine): Promise<EnvType> {
   const environment: EnvType = {
     ...initialEnv,
   };
-  console.log({ environment }, "requestEngineService");
+  const cookies: MyCookie = {
+    cookie: initialCookie.cookie,
+    oldCookie: initialCookie.oldCookie,
+  };
 
   const listOfResult: any[] = [];
   const listOfError: any[] = [];
 
   async function createLog() {
     await RespositoryJson.createOrUpdateRequest({
-      key: logKey,
+      key: sysKey,
       type,
       data: {
+        key: reqKey,
         date: new Date(),
         variaveis: environment,
         resultados: listOfResult,
       },
       error: listOfError[0]
         ? {
+            key: reqKey,
             date: new Date(),
             erros: listOfError,
           }
         : undefined,
     });
   }
+
+  const pushCookie = (cookieToPush: string[]): void => {
+    const newCookie = getCookie(
+      cookieToPush,
+      cookies.cookie,
+      cookies.oldCookie
+    );
+
+    cookies.cookie = newCookie;
+
+    if (cookies.oldCookie) {
+      cookies.oldCookie.push(cookieToPush);
+    } else {
+      cookies.oldCookie = [cookieToPush];
+    }
+  };
 
   for (const [index, request] of requests.entries()) {
     let { url, method, headers, body } = request.request;
@@ -52,6 +78,19 @@ export async function requestEngineService({
     const parsedJsonBody = body
       ? JSON.stringify(replaceMarkers(body, environment))
       : undefined;
+
+    if (headers.Cookie || headers.cookie) {
+      const headerCookie = headers.cookie || headers.Cookie;
+      if (headers.cookie) {
+        delete headers.cookie;
+      }
+
+      pushCookie(headerCookie.split(";"));
+    }
+
+    if (cookies.cookie) {
+      headers.Cookie = cookies.cookie;
+    }
 
     const data = await fetch(url, {
       method,
@@ -100,6 +139,9 @@ export async function requestEngineService({
           ...dataToLog,
         });
 
+        const resCookie = res.headers.getSetCookie();
+        if (resCookie[0]) pushCookie(resCookie);
+
         return resultData;
       })
       .catch(async (e) => {
@@ -115,5 +157,6 @@ export async function requestEngineService({
   }
 
   await createLog();
-  return environment;
+
+  return { environment, cookies };
 }

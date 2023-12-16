@@ -1,18 +1,24 @@
-import autocannon, {Request} from "autocannon";
+import autocannon, { Request } from "autocannon";
 import RespositoryJson from "../../common/database/repository.js";
 import { replaceMarkers } from "../../common/utils/variable-replacement.js";
 import { EnvType } from "../controller/runner.controller.js";
 import { LoadTestExecute } from "../validations/runner.validations.js";
 
-
-export async function loadTestService(
-  data: LoadTestExecute,
-  logKey: string,
-  initialEnv?: EnvType
-) {
+interface ILoadTestDTO {
+  loadTest: LoadTestExecute;
+  sysKey: string;
+  reqKey: string;
+  initialEnv?: EnvType;
+}
+export async function loadTestService({
+  loadTest,
+  reqKey,
+  sysKey,
+  initialEnv,
+}: ILoadTestDTO) {
   const environment: EnvType = { ...initialEnv };
 
-  let { url, body, headers, method, ...rest } = data;
+  let { url, body, headers, method, ...rest } = loadTest;
 
   url = replaceMarkers(url, environment);
   headers = replaceMarkers(headers, environment);
@@ -26,9 +32,8 @@ export async function loadTestService(
     ...rest,
   });
 
-  
-  await RespositoryJson.createOrUpdateLoadData({key:logKey, loadData: result,} )
-
-
-  
+  await RespositoryJson.createOrUpdateLoadData({
+    key: sysKey,
+    loadData: {...result, key: reqKey},
+  });
 }

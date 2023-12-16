@@ -5,8 +5,9 @@ const routesToTest = Router()
 
 
 routesToTest.get('/parametro1', (request, response)=>{
-  console.log('\nparametro1', new Date().toLocaleString(), '\n')
-  return response.send({numero1: 50})
+  const value = Date.now()
+  console.log('\nparametro1', new Date().toLocaleString(), value, '\n')
+  return response.cookie('parametro1Test', value).send({numero1: 50})
 })
 
 routesToTest.get('/parametro2', (request, response)=>{

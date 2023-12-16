@@ -1,18 +1,19 @@
-@namespace=ath-qualidade-massa-de-dados
+@namespace=ath-api-exemplo
 @versao=1.0.0-alpha2
-@cenario=teste local
+@cenario=teste api
 
 POST http://localhost:3000/teste-carga/executar
 content-type: application/json
 
 {
-    "pre-request": [
+    "preRequest": [
         {
             "request": {
                 "url": "http://localhost:3000/test/parametro1",
-                "method": "get",
+                "method": "GET",
                 "headers": {
-                    "content-type": "application/json"
+                    "content-type": "application/json",
+                    "cookie": "teste=asdfsadfasdf"
                 }
             },
             "environment": [
@@ -25,7 +26,7 @@ content-type: application/json
         {
             "request": {
                 "url": "http://localhost:3000/test/parametro2",
-                "method": "get",
+                "method": "GET",
                 "headers": {
                     "content-type": "application/json"
                 }
@@ -38,13 +39,13 @@ content-type: application/json
             ]
         }
     ],
-    "request-carga": {
+    "testeDeCarga": {
         "url": "http://localhost:3000/test/soma",
         "connections": 1,
         "pipelining": 1,
         "amount": 5,
         "method": "post",
-        "title": "quarto teste pelo body",
+        "title": "execução de exemplo",
         "body": {
             "numero1": "<<number1>>",
             "numero2": "<<number2>>"
@@ -53,10 +54,10 @@ content-type: application/json
             "content-type": "application/json"
         }
     },
-    "pos-request": [{
+    "posRequest": [{
         "request": {
                 "url": "http://localhost:3000/test/parametro1",
-                "method": "post",
+                "method": "GET",
                 "headers": {
                     "content-type": "application/json"
                 }
@@ -87,14 +88,12 @@ content-type: application/json
 }
 
 ###
-
-GET  http://localhost:3000/teste-carga/buscar/namespace/{{namespace}}/versao/{{versao}}/cenario/{{cenario}}
-?antes=2023-12-14
-    &depois=2023-12-13T22:23:00.829Z
+@keyReq=1702574480867-de85057c-46b3-4ba0-a99f-1a4492ffe032
+GET  http://localhost:3000/teste-carga/buscar/{{keyReq}}/namespace/{{namespace}}/versao/{{versao}}/cenario/{{cenario}}
 content-type: application/json
 
 ###
-GET  http://localhost:3000/teste-carga/buscar/namespace/{{namespace}}/versao/{{versao}}
+GET  http://localhost:3000/teste-carga/buscar/{{keyReq}}/namespace/{{namespace}}/versao/{{versao}}
 content-type: application/json
 
 ###

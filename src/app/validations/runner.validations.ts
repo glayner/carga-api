@@ -126,29 +126,37 @@ const LoadRequestSchema = z.object({
   skipAggregateResult: z.boolean().optional(),
 });
 
-const KeyData = {
-  namespace: z.string(),
-  versao: z.string(),
-  cenario: z.string().optional(),
-};
-
-const RunnerAutocannonSchema = z
+export const RunnerAutocannonSchema = z
   .object({
-    "pre-request": z.array(PreAndPosRequestSchema.optional()),
-    "request-carga": LoadRequestSchema.strict(),
-    "pos-request": z.array(PreAndPosRequestSchema.optional()),
-    ...KeyData,
+    preRequest: z.array(PreAndPosRequestSchema.optional()),
+    testeDeCarga: LoadRequestSchema.strict(),
+    posRequest: z.array(PreAndPosRequestSchema.optional()),
+    namespace: z.string(),
+    versao: z.string(),
+    cenario: z.string().optional(),
   })
   .strict();
 
-const GetResultQuerySchema = z.object({
-  antes:  z.string().datetime().optional(),
-  depois:  z.string().datetime().optional()
-})
+const SearchResultQuerySchema = z.object({
+  namespace: z.string().optional(),
+  versao: z.string().optional(),
+  cenario: z.string().optional(),
+  antesDe: z.string().datetime().optional(),
+  depoisDe: z.string().datetime().optional(),
+});
+
+const GetResultParamSchema = z.object({
+  keyReq: z.string(),
+  namespace: z.string(),
+  versao: z.string(),
+  cenario: z.string().optional(),
+});
 
 export type RunnerLoadTestBody = z.infer<typeof RunnerAutocannonSchema>;
 export type LoadTestExecute = z.infer<typeof LoadRequestSchema>;
 export type RequestEngine = z.infer<typeof PreAndPosRequestSchema>;
+export type QuerySearchResultLoadTest = z.infer<typeof SearchResultQuerySchema>;
+export type ParamGetResultLoadTest = z.infer<typeof GetResultParamSchema>;
 
 export const validateRunnerLoadTest = (
   request: Request,
@@ -167,21 +175,21 @@ export const validateGetResultRunnerLoadTest = (
   response: Response,
   next: NextFunction
 ) => {
-  const namespace = KeyData.namespace.parse(request.params.namespace);
-  const versao = KeyData.versao.parse(request.params.versao);
-  const cenario = KeyData.cenario.parse(request.params.cenario);
-  const param: { namespace: string; versao: string; cenario?: string } = {
-    namespace,
-    versao,
-  };
+  const params = GetResultParamSchema.parse(request.params);
 
-  if (cenario) param.cenario = cenario;
+  request.params = params;
 
-  request.params = param;
+  next();
+};
 
-  const query = GetResultQuerySchema.parse(request.query)
+export const validateSearchResultRunnerLoadTest = (
+  request: Request,
+  response: Response,
+  next: NextFunction
+) => {
+  const query = SearchResultQuerySchema.parse(request.query);
 
-  request.query = query
+  request.query = query;
 
   next();
 };
